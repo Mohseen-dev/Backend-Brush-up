@@ -1,0 +1,20 @@
+{
+  "name": "backendseries",
+  "version": "1.0.0",
+  "description": "Backend Practice and Brush up my backend Knowledge",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": [
+    "Mohseen",
+    "Backend"
+  ],
+  "author": "Mohd Mohseen Khan",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "prettier": "^3.8.1"
+  }
+}
