@@ -1,3 +1,6 @@
+// require('dotenv').config();  //! this Import Syntax add inconsistency in the code(my)
+import dotenv from "dotenv";
+dotenv.config({ path: "./env" }); //* we can also load environment variable in package.json via CLI flag in modern or new version of Node.js (above v20+)
 import connectToDB from "./db/index.js";
 import { app } from "./app.js";
 
