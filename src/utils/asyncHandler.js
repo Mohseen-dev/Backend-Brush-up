@@ -1,12 +1,13 @@
 // ! use only one syntax or version
 //* this is Promise Version
 const asynchandler = (requestHandler) => {
-  (req, res, next) => {
+  return (req, res, next) => {
     Promise.resolve(requestHandler(req, res, next)).catch((error) => {
       next(error);
     });
   };
 };
+export {asynchandler}
 
 //* this is tryCatch Version syntax
 

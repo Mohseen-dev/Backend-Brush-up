@@ -55,12 +55,18 @@ const userSchema = new mongoose.Schema(
 
 //! Ecrypt user password Before saving in database
 // IDEA: or HACK: use normal function instead of arrow function
+// userSchema.pre("save",  function (next) {
+//   if (this.isModified("password")) {
+//     this.password = await bcrypt.hash(this.password, 10);
+//     next();
+//   }
+//   next();
+// });
 userSchema.pre("save", async function (next) {
   if (this.isModified("password")) {
     this.password = bcrypt.hash(this.password, 10);
-    next();
   }
-  next();
+  // next(); //! async + next() may be create Conflict
 });
 
 userSchema.methods.isPasswordCorrect = async function (password) {
