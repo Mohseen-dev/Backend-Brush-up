@@ -179,7 +179,7 @@ const loginController = asynchandler(async (req, res) => {
   const cookieOptions = {
     httpOnly: true, // Prevents JS from accessing the cookie (secure)
     secure: true, // Only sent over HTTPS
-    sameSite: "strict", // Prevents CSRF attacks
+    // sameSite: "strict", // Prevents CSRF attacks
   };
   res
     .status(200)
@@ -194,4 +194,38 @@ const loginController = asynchandler(async (req, res) => {
     );
 });
 
-export { registerController, loginController };
+const logoutController = asynchandler(async (req, res) => {
+  //! Algorithm
+  // 1. find User and userDetail from database:
+  //! Problem : how to find User detail from database beacause we don't have any Key(i.e id,userName,email etc.) to find data
+  //* solution : we need to write a middleware to verify User is logged in or not , if yes then add User detail object into "req",So that we can access user detail directly from req.onjectName(req.loggindUser)
+  //* that's why we write a "Auth.middleware.js" middleware
+  // 2. Remove refreshToken value from Database
+  // 3. remove cookies i.e accessToken and refreshToken
+
+  //! start
+
+  // 1.
+  // const LoginUserDetails = req.loggindUser;
+  const { _id } = req.loggindUser;
+
+  // 2.
+  await User.findByIdAndUpdate(
+    _id,
+    { $set: { refreshToken: undefined } },
+    { new: true, select: "-password" }
+  );
+
+  // 3.
+  const cookieOptions = {
+    httpOnly: true,
+    secure: true,
+  };
+  res
+    .status(200)
+    .clearCookie("refreshToken", cookieOptions)
+    .clearCookie("accessToken", cookieOptions)
+    .json(new ApiResponse(204), {}, "Successfullu logout and remove Cookie ");
+});
+
+export { registerController, loginController, logoutController };
