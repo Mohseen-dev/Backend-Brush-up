@@ -28,7 +28,7 @@ const registerController = asynchandler(async (req, res) => {
 
   if (
     [userName, fullName, email, password].some((field) => {
-      field && field.trim() === "";
+      return !field || field.trim() === "";
     })
   ) {
     throw new ApiError(400, "All fields are required.");
@@ -36,13 +36,13 @@ const registerController = asynchandler(async (req, res) => {
 
   // 3.-----------------------------------------------------------------
 
-  const isUserExist = await User.findOne({
+  const isUserAlreadyExist = await User.findOne({
     $and: [{ userName }, { email }],
   });
 
   // 4.-----------------------------------------------------------------
 
-  if (isUserExist) throw new ApiError(400, "User already exist");
+  if (isUserAlreadyExist) throw new ApiError(400, "User already exist");
 
   // 5 and 6.-----------------------------------------------------------------
 
@@ -57,7 +57,7 @@ const registerController = asynchandler(async (req, res) => {
   if (
     !req.files ||
     !req.files.avatar ||
-    !req.files.avatar > 0 ||
+    req.files.avatar.length === 0 ||
     !req.files.avatar[0].path
   )
     throw new ApiError(404, "avatar is required.");
@@ -106,4 +106,92 @@ const registerController = asynchandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(201, createdUserDataFromDB));
 });
 
-export { registerController };
+const loginController = asynchandler(async (req, res) => {
+  //! Algorithm
+  //1. getting user information from frontend
+  //2. validate these User's information , if empty return Error
+  //3. search user in database with user's username and email coming from frontend, if not exist return Error
+  //4. match user credential , if your credential does not match then return Error
+  //5. generate AccessToken and refreshToken
+  //6. generated refresh token add in database also
+  //7. send these AccessToken and refreshToken to frontend as a cookie session
+  //8. Return Ok response
+
+  //! start
+
+  // 1.-------------------------------------------------------------------
+
+  const { userName, email, password, fullName } = req.body;
+  // console.log(req);
+  // console.log("checkPoint :: frontend data :: userName,email,password,fullName :: ",userName,email,password,fullName);
+
+  // 2.-------------------------------------------------------------------
+
+  if (
+    [userName, email, password, fullName].some(
+      (field) => !field || field.trim() === ""
+    )
+  ) {
+    throw new ApiError(400, "All fields are required.");
+  }
+
+  // 3.-------------------------------------------------------------------
+
+  const isUserExist = await User.findOne({ $and: [{ userName }, { email }] });
+
+  // 4.-------------------------------------------------------------------
+
+  if (
+    !isUserExist ||
+    isUserExist.userName !== userName ||
+    isUserExist.email !== email ||
+    !(await isUserExist.isPasswordCorrect(password))
+  )
+    throw new ApiError(404, "User doesn't exits or Invalid Credentail");
+
+  // 5.-------------------------------------------------------------------
+
+  const accessToken = await isUserExist.generateAccessToken();
+  const refreshToken = await isUserExist.generateRefreshToken();
+  // console.log("accessToken :: ", accessToken);
+  // console.log("refreshToken :: ", refreshToken);
+
+  //6.-------------------------------------------------------------------
+
+  isUserExist.refreshToken = refreshToken;
+
+  // 7.-------------------------------------------------------------------
+
+  const userDetailForFrontend = await isUserExist
+    .save({
+      validateBeforeSave: false,
+    })
+    .then((state) => {
+      const data = state.toObject();
+      delete data["password"];
+      data.accessToken = accessToken;
+      data.refreshToken = refreshToken;
+      return data;
+    });
+
+  // 8.-------------------------------------------------------------------
+
+  const cookieOptions = {
+    httpOnly: true, // Prevents JS from accessing the cookie (secure)
+    secure: true, // Only sent over HTTPS
+    sameSite: "strict", // Prevents CSRF attacks
+  };
+  res
+    .status(200)
+    .cookie("accessToken", accessToken, cookieOptions)
+    .cookie("refreshToken", refreshToken, cookieOptions)
+    .json(
+      new ApiResponse(
+        202,
+        userDetailForFrontend,
+        "Successfully login and set cookies"
+      )
+    );
+});
+
+export { registerController, loginController };
